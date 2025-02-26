@@ -1,0 +1,11 @@
+{
+  "name": "@lce-monitor/ex-app",
+  "private": true,
+  "version": "0.1.0",
+  "description": "monorepo example app",
+  "author": "David Mokel",
+  "license": "MIT",
+  "dependencies": {
+    "@lce-monitor/utils": "workspace:^"
+  }
+}
