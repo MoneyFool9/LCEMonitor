@@ -9,12 +9,12 @@ export default {
     'type-case': [2, 'always', 'lower-case'],
     'type-empty': [2, 'never'],
     'scope-case': [2, 'always', 'lower-case'],
+    'scope-empty': [2, 'never'],
     'subject-full-stop': [2, 'never', '.'],
     'subject-case': [2, 'never', ['sentence-case', 'start-case', 'pascal-case', 'upper-case']],
     'header-max-length': [2, 'always', 72]
   }
 }
-
 /**
  * type-enum: 提交类型必须是预定义的值之一。
     type-case: 提交类型必须是小写。
