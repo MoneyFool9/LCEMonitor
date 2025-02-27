@@ -4,7 +4,8 @@
   "description": "",
   "scripts": {
     "lint": "eslint . --ext .ts",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "cz": "npx cz"
   },
   "keywords": [],
   "author": "LCE",
@@ -26,6 +27,7 @@
     "lint-staged": "^15.4.3",
     "prettier": "^3.5.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "3.0.7"
   }
 }

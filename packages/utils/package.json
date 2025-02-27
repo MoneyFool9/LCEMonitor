@@ -5,5 +5,5 @@
   "description": "local utils package",
   "author": "LCE",
   "license": "MIT",
-  "main": "./src/index.ts"
+  "main": "./dist/index.js"
 }

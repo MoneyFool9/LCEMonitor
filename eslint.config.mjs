@@ -16,7 +16,7 @@ const compat = new FlatCompat({
 
 export default [
   {
-    ignores: ['**/node_modules/', '**/pnpm-lock.yaml', '**/*.md']
+    ignores: ['**/node_modules/', '**/pnpm-lock.yaml', '**/*.md', '**/dist/']
   },
   ...compat.extends(
     'eslint:recommended',
@@ -40,7 +40,8 @@ export default [
       'prettier/prettier': 'error',
       'arrow-body-style': 'off',
       'prefer-arrow-callback': 'off',
-      '@typescript-eslint/no-explicit-any': 'off'
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unused-expressions': 'off'
     }
   },
   {

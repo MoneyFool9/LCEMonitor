@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.option.json",
+  "references": [
+    {
+      "path": "../../packages/utils"
+    }
+  ],
+  "compilerOptions": {
+    "declarationMap": false,
+    "emitDeclarationOnly": false,
+    "incremental": false,
+    "composite": false,
+    "rootDir": "./src",
+    "outDir": "./dist"
+  }
+}

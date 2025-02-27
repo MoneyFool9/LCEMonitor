@@ -13,6 +13,5 @@ export default {
   proseWrap: 'preserve', // 不要包装 Markdown 文本
   htmlWhitespaceSensitivity: 'css', // 根据 CSS 规则处理 HTML 空格
   vueIndentScriptAndStyle: false, // 不要缩进 Vue 文件中的 <script> 和 <style> 标签
-  embeddedLanguageFormatting: 'auto', // 根据文件类型自动格式化嵌入的语言
-  ignorePath: '.prettierignore' // 指定忽略文件的路径
+  embeddedLanguageFormatting: 'auto' // 根据文件类型自动格式化嵌入的语言
 }
