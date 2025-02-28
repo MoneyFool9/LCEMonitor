@@ -5,16 +5,18 @@
   "main": "./src/main.ts",
   "scripts": {
     "build": "nest build",
-    "start:dev": "nest start --watch",
-    "start:prod": "node ."
+    "dev": "nest start --watch"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@clickhouse/client": "^1.10.1",
     "@nestjs/common": "^11.0.10",
     "@nestjs/core": "^11.0.10",
     "@nestjs/platform-express": "^11.0.10",
+    "dotenv": "^16.4.7",
+    "kafkajs": "^2.2.4",
     "reflect-metadata": "^0.2.2"
   }
 }

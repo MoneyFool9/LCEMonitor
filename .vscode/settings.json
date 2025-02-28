@@ -9,6 +9,8 @@
   "editor.formatOnSaveMode": "file",
   "editor.formatOnType": true,
   "editor.formatOnPaste": false,
+  "editor.tabSize": 2,
+  "editor.autoIndent": "none",
   "[typescript]": {
     "editor.formatOnSave": true,
     "editor.defaultFormatter": "esbenp.prettier-vscode",
