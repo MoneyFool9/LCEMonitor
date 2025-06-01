@@ -5,7 +5,13 @@
   "scripts": {
     "lint": "eslint . --ext .ts",
     "format": "prettier --write .",
-    "cz": "npx cz"
+    "cz": "npx cz",
+    "admin:dev": "pnpm --filter @lce-monitor/admin dev",
+    "admin:build": "pnpm --filter @lce-monitor/admin build",
+    "admin:preview": "pnpm --filter @lce-monitor/admin preview",
+    "sdk:debug": "pnpm --filter @lce-monitor/jssdk debug",
+    "server:dev": "pnpm --filter @lce-monitor/server dev",
+    "server:build": "pnpm --filter @lce-monitor/server build"
   },
   "keywords": [],
   "author": "LCE",
