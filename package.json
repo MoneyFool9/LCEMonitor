@@ -11,7 +11,10 @@
     "admin:preview": "pnpm --filter @lce-monitor/admin preview",
     "sdk:debug": "pnpm --filter @lce-monitor/jssdk debug",
     "server:dev": "pnpm --filter @lce-monitor/server dev",
-    "server:build": "pnpm --filter @lce-monitor/server build"
+    "server:build": "pnpm --filter @lce-monitor/server build",
+    "docs:dev": "pnpm --filter @lce-monitor/docs dev",
+    "docs:build": "pnpm --filter @lce-monitor/docs build",
+    "docs:preview": "pnpm --filter @lce-monitor/docs preview"
   },
   "keywords": [],
   "author": "LCE",
