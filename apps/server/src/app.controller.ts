@@ -1,15 +1,22 @@
-import { Controller, Get } from '@nestjs/common'
+import { Body, Controller, Get, Post } from '@nestjs/common'
 import { AppService } from './app.service'
+import { ClickhouseService } from './clickhouse.service'
 
-@Controller()
+@Controller('monitoring')
 export class AppController {
-  constructor(private readonly appService: AppService) {}
-  @Get()
-  async getHello() {
-    const data = await this.appService.selectData()
+  constructor(
+    private readonly appService: AppService,
+    private readonly clickhouseService: ClickhouseService
+  ) {}
+  @Post()
+  async receiveData(@Body() data: any) {
+    await this.appService.processData(data)
     return {
-      code: 200,
-      data
+      status: 'success'
     }
+  }
+  @Get('all')
+  async getData() {
+    return await this.clickhouseService.selectData()
   }
 }

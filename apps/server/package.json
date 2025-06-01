@@ -1,5 +1,6 @@
 {
-  "name": "server",
+  "name": "@lce-monitor/server",
+  "private": true,
   "version": "1.0.0",
   "description": "",
   "main": "./src/main.ts",

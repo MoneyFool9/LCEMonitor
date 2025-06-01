@@ -1,7 +1,7 @@
 export default {
   semi: false, // 使用分号
   singleQuote: true, // 使用单引号
-  trailingComma: 'none', // 在对象和数组最后一个元素后面加逗号
+  trailingComma: 'none', // 在对象和数组最后一个元素后面不加逗号
   printWidth: 120, // 每行代码的最大长度
   tabWidth: 2, // 缩进的空格数
   arrowParens: 'always', // 箭头函数参数始终使用括号

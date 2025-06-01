@@ -1,5 +1,5 @@
 {
-  "name": "@lce-monitor/ex-app",
+  "name": "@lce-monitor/jssdk",
   "private": true,
   "version": "0.1.0",
   "description": "monorepo example app",
