@@ -14,7 +14,8 @@
     "server:build": "pnpm --filter @lce-monitor/server build",
     "docs:dev": "pnpm --filter @lce-monitor/docs dev",
     "docs:build": "pnpm --filter @lce-monitor/docs build",
-    "docs:preview": "pnpm --filter @lce-monitor/docs preview"
+    "docs:preview": "pnpm --filter @lce-monitor/docs preview",
+    "devTest:dev": "pnpm --filter @lce-monitor/test-app dev"
   },
   "keywords": [],
   "author": "LCE",
