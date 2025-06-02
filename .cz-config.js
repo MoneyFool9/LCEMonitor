@@ -26,7 +26,15 @@ module.exports = {
     { value: 'ci', name: 'ci:      更改为我们的CI配置文件和脚本' }
   ],
 
-  scopes: [{ name: 'admin' }, { name: 'server' }, { name: 'sdk' }, { name: 'docs' }, { name: 'other' }],
+  scopes: [
+    { name: 'admin' },
+    { name: 'server' },
+    { name: 'sdk' },
+    { name: 'docs' },
+    { name: 'cleaner-server' },
+    { name: 'test-app' },
+    { name: 'other' }
+  ],
 
   allowTicketNumber: false,
   isTicketNumberRequired: false,
