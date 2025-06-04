@@ -4,7 +4,9 @@ import { QueryOption } from './type'
 
 @Injectable()
 export class ClickhouseService {
-  private client: ClickHouseClient
+  private client: ClickHouseClient // ClickHouse 客户端实例
+  // 使用 createClient 创建 ClickHouse 客户端
+  // 通过环境变量配置连接信息
 
   constructor() {
     this.client = createClient({

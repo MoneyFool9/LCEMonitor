@@ -7,8 +7,9 @@ type EventType = 'pv' | 'uv' | 'click' | 'stay' | 'route' | 'custom' | 'performa
  * 埋点事件结构
  */
 interface TrackEvent {
-  event_type: EventType
+  type: EventType
   timestamp: string
+  userId: string // 用户 ID，建议使用 UUID 或其他唯一标识符
   data: Record<string, any>
 }
 
@@ -20,6 +21,14 @@ interface SDKOptions {
   batch?: boolean // 是否批量上报
   batchSize?: number // 批量上报的阈值
   retryInterval?: number // 失败重试的间隔（ms）
+}
+
+/**
+ * 时间格式化工具，返回 "YYYY-MM-DD HH:mm:ss"
+ */
+function formatTimestamp(date: Date = new Date()): string {
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
 
 /**
@@ -65,8 +74,9 @@ export default class LCEMonitor {
    */
   private trackPV() {
     this.enqueue({
-      event_type: 'pv',
-      timestamp: new Date().toISOString(),
+      type: 'pv',
+      userId: '7879',
+      timestamp: formatTimestamp(),
       data: { url: location.href }
     })
   }
@@ -79,10 +89,12 @@ export default class LCEMonitor {
     const now = Date.now()
     const uv = localStorage.getItem(uvKey)
     if (!uv || now - Number(uv) > 24 * 3600 * 1000) {
+      // 如果没有 UV 或者超过 24 小时
       localStorage.setItem(uvKey, now.toString())
       this.enqueue({
-        event_type: 'uv',
-        timestamp: new Date().toISOString(),
+        userId: '7879',
+        type: 'uv',
+        timestamp: formatTimestamp(),
         data: { url: location.href }
       })
     }
@@ -97,8 +109,9 @@ export default class LCEMonitor {
       const eventName = target.getAttribute('data-lce-event')
       if (eventName) {
         this.enqueue({
-          event_type: 'click',
-          timestamp: new Date().toISOString(),
+          type: 'click',
+          userId: '7879',
+          timestamp: formatTimestamp(),
           data: { event: eventName, url: location.href }
         })
       }
@@ -112,8 +125,9 @@ export default class LCEMonitor {
     window.addEventListener('beforeunload', () => {
       const stayTime = Date.now() - this.stayStartTime
       this.enqueue({
-        event_type: 'stay',
-        timestamp: new Date().toISOString(),
+        type: 'stay',
+        userId: '7879',
+        timestamp: formatTimestamp(),
         data: { url: location.href, stayTime }
       })
       this.flush()
@@ -127,8 +141,9 @@ export default class LCEMonitor {
     const handler = () => {
       if (location.href !== this.lastUrl) {
         this.enqueue({
-          event_type: 'route',
-          timestamp: new Date().toISOString(),
+          type: 'route',
+          userId: '7879',
+          timestamp: formatTimestamp(),
           data: { from: this.lastUrl, to: location.href }
         })
         this.lastUrl = location.href
@@ -153,22 +168,56 @@ export default class LCEMonitor {
 
   /**
    * 采集页面性能数据（如 FCP、LCP、TTFB 等）
+   * 首字节时间（TTFB，Time To First Byte）
+   * 首次内容绘制（FCP，First Contentful Paint）
+   * 最大内容绘制（LCP，Largest Contentful Paint）
+   * 可交互时间（TTI，Time To Interactive）
+   * DOMContentLoaded 时间
+   * 资源加载时间（如 CSS、JS、图片等的加载耗时）
    */
+
   private collectPerformanceData() {
     window.addEventListener('load', () => {
       setTimeout(() => {
         const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming
         const fcp = performance.getEntriesByName('first-contentful-paint')[0] as PerformanceEntry
         const lcp = performance.getEntriesByName('largest-contentful-paint')[0] as PerformanceEntry
+
+        // 计算 TTI（简单近似：DOMContentLoadedEventEnd）
+        const tti = nav ? nav.domContentLoadedEventEnd : null
+
+        // 资源加载时间统计
+        const resources = performance.getEntriesByType('resource') as PerformanceResourceTiming[]
+        const resourceStats = {
+          css: 0,
+          js: 0,
+          img: 0,
+          other: 0
+        }
+        let totalResourceTime = 0
+        resources.forEach((res) => {
+          const duration = res.duration
+          totalResourceTime += duration
+          if (res.initiatorType === 'css') resourceStats.css += duration
+          else if (res.initiatorType === 'script') resourceStats.js += duration
+          else if (res.initiatorType === 'img') resourceStats.img += duration
+          else resourceStats.other += duration
+        })
+
         const performanceData = {
           pageLoadTime: nav ? nav.loadEventEnd - nav.loadEventStart : null,
           fcp: fcp ? fcp.startTime : null,
           lcp: lcp ? lcp.startTime : null,
-          ttfb: nav ? nav.responseStart - nav.requestStart : null
+          ttfb: nav ? nav.responseStart - nav.requestStart : null,
+          tti,
+          domContentLoaded: nav ? nav.domContentLoadedEventEnd - nav.startTime : null,
+          totalResourceTime,
+          resourceStats
         }
         this.enqueue({
-          event_type: 'performance',
-          timestamp: new Date().toISOString(),
+          type: 'performance',
+          userId: '7879',
+          timestamp: formatTimestamp(),
           data: performanceData
         })
       }, 0)
@@ -176,29 +225,57 @@ export default class LCEMonitor {
   }
 
   /**
-   * 监听并采集 JS 错误和未捕获 Promise 异常
+   * 监听并采集 JS 错误和未捕获 Promise 异常、资源加载错误、API 请求错误
    */
   private setupErrorHandling() {
-    window.addEventListener('error', (event: ErrorEvent) => {
-      const { message, filename, lineno, colno, error } = event
-      this.enqueue({
-        event_type: 'error',
-        timestamp: new Date().toISOString(),
-        data: {
-          message,
-          filename,
-          lineno,
-          colno,
-          stack: error?.stack || ''
+    window.addEventListener(
+      'error',
+      (event: ErrorEvent) => {
+        // 静态资源加载错误
+        if (
+          event.target &&
+          (event.target instanceof HTMLImageElement ||
+            event.target instanceof HTMLScriptElement ||
+            event.target instanceof HTMLLinkElement)
+        ) {
+          const target = event.target as HTMLElement
+          this.enqueue({
+            type: 'error',
+            userId: '7879',
+            timestamp: formatTimestamp(),
+            data: {
+              message: 'Resource Load Error',
+              tagName: target.tagName,
+              src: (target as any).src || (target as any).href || '',
+              outerHTML: target.outerHTML
+            }
+          })
+          return
         }
-      })
-    })
+        // JS 运行时错误
+        const { message, filename, lineno, colno, error } = event
+        this.enqueue({
+          type: 'error',
+          userId: '7879',
+          timestamp: formatTimestamp(),
+          data: {
+            message,
+            filename,
+            lineno,
+            colno,
+            stack: error?.stack || ''
+          }
+        })
+      },
+      true
+    ) // 捕获捕获阶段的错误
 
     window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
       const { reason } = event
       this.enqueue({
-        event_type: 'unhandledrejection',
-        timestamp: new Date().toISOString(),
+        type: 'unhandledrejection',
+        userId: '7879',
+        timestamp: formatTimestamp(),
         data: {
           reason: typeof reason === 'string' ? reason : reason?.message || '',
           stack: reason?.stack || ''
@@ -214,8 +291,9 @@ export default class LCEMonitor {
    */
   public track(event: string, data?: Record<string, any>) {
     this.enqueue({
-      event_type: 'custom',
-      timestamp: new Date().toISOString(),
+      type: 'custom',
+      userId: '7879',
+      timestamp: formatTimestamp(),
       data: { event, ...data }
     })
   }
@@ -225,7 +303,9 @@ export default class LCEMonitor {
    */
   private enqueue(event: TrackEvent) {
     this.queue.push(event)
+    console.log('Event enqueued:', this.queue.length, event.type, event.data)
     this.saveCache()
+    // 如果不是批量上报，或者队列已满，则立即上报
     if (!this.options.batch) {
       this.flush()
     } else if (this.queue.length >= (this.options.batchSize || 10)) {
@@ -240,13 +320,28 @@ export default class LCEMonitor {
     if (this.isSending || this.queue.length === 0) return
     this.isSending = true
     const events = this.queue.splice(0, this.queue.length)
+    console.log('Flushing events:', events.length, events)
     try {
-      await fetch(this.endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(events),
-        keepalive: true
-      })
+      // // 使用 gif 上报方式
+      // for (const event of events) {
+      //   const img = new Image()
+      //   // 数据编码到 url 参数
+      //   const params = encodeURIComponent(JSON.stringify(event))
+      //   img.src = `${this.endpoint}?data=${params}&_t=${Date.now()}`
+      //   // console.log(img.src) // 调试输出;
+      // }
+      // 推荐：批量上报
+      const payload = { events }
+      // if (navigator.sendBeacon) {
+      //   navigator.sendBeacon(this.endpoint, JSON.stringify(payload))
+      // } else {
+      console.log('Sending events via fetch:', payload)
+      // await fetch(this.endpoint, {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify(payload)
+      // })
+      // }
       this.clearCache()
     } catch (err) {
       // 上报失败，重新入队并缓存，稍后重试
