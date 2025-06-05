@@ -336,12 +336,11 @@ export default class LCEMonitor {
       //   navigator.sendBeacon(this.endpoint, JSON.stringify(payload))
       // } else {
       console.log('Sending events via fetch:', payload)
-      // await fetch(this.endpoint, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(payload)
-      // })
-      // }
+      await fetch(this.endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
       this.clearCache()
     } catch (err) {
       // 上报失败，重新入队并缓存，稍后重试
