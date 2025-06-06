@@ -257,6 +257,9 @@ importers:
 
   apps/test-app:
     dependencies:
+      '@lce-monitor/jssdk':
+        specifier: workspace:^
+        version: link:../sdk
       vue:
         specifier: ^3.5.13
         version: 3.5.13(typescript@5.8.3)

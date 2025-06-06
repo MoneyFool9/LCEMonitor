@@ -4,6 +4,9 @@
     "declarationMap": false,
     "emitDeclarationOnly": false,
     "rootDir": "./src",
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "module": "ESNext", // 关键：输出为 ESM
+    "target": "ES2017",
+    "moduleResolution": "Node"
   }
 }

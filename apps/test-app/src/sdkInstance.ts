@@ -1,4 +1,4 @@
-import LCEMonitor from '../../../apps/sdk/src/lo'
+import LCEMonitor from '@lce-monitor/jssdk/src/lo'
 export const sdk = new LCEMonitor({
   endpoint: 'http://localhost:3000/report',
   batch: true,
