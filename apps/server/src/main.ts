@@ -6,6 +6,7 @@ import { AppModule } from './app.module'
 dotenv.config() // 加载 .env 文件
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule)
+  app.enableCors() // 启用 CORS 支持
   await app.listen(process.env.PORT || 3000)
   console.log(`Server is running on http://localhost:${process.env.PORT || 3000}`)
 }

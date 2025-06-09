@@ -46,6 +46,10 @@
 import { ref, onMounted } from 'vue'
 // import LCEMonitor from '../../../../apps/sdk/src/lo'
 import { sdk } from '../sdkInstance'
+sdk.registerErrorHandler((e) => {
+  // 这里可以自定义处理逻辑，比如上报、弹窗、忽略等
+  console.error('自定义错误处理:', e)
+})
 
 const inputValue = ref('')
 const showPanel = ref(false)

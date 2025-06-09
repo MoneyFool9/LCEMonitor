@@ -75,17 +75,32 @@ export default class LCEMonitor {
    */
   private listenClick() {
     document.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement
-      const eventName = target.getAttribute('data-lce-event')
-      if (eventName) {
-        this.enqueue({
-          type: 'click',
-          userId: '7879',
-          timestamp: formatTimestamp(),
-          data: { event: eventName, url: location.href }
-        })
-      }
+      this.callWithErrorHandling(() => {
+        const target = e.target as HTMLElement
+        const eventName = target.getAttribute('data-lce-event')
+        if (eventName) {
+          this.enqueue({
+            type: 'click',
+            userId: '7879',
+            timestamp: formatTimestamp(),
+            data: { event: eventName, url: location.href }
+          })
+        }
+      })
     })
+
+    // document.addEventListener('click', (e) => {
+    //   const target = e.target as HTMLElement
+    //   const eventName = target.getAttribute('data-lce-event')
+    //   if (eventName) {
+    //     this.enqueue({
+    //       type: 'click',
+    //       userId: '7879',
+    //       timestamp: formatTimestamp(),
+    //       data: { event: eventName, url: location.href }
+    //     })
+    //   }
+    // })
   }
 
   /**
@@ -93,14 +108,16 @@ export default class LCEMonitor {
    */
   private trackStayTime() {
     window.addEventListener('beforeunload', () => {
-      const stayTime = Date.now() - this.stayStartTime
-      this.enqueue({
-        type: 'stay',
-        userId: '7879',
-        timestamp: formatTimestamp(),
-        data: { url: location.href, stayTime }
+      this.callWithErrorHandling(() => {
+        const stayTime = Date.now() - this.stayStartTime
+        this.enqueue({
+          type: 'stay',
+          userId: '7879',
+          timestamp: formatTimestamp(),
+          data: { url: location.href, stayTime }
+        })
+        this.flush()
       })
-      this.flush()
     })
   }
 
@@ -121,8 +138,8 @@ export default class LCEMonitor {
         this.trackPV()
       }
     }
-    window.addEventListener('popstate', handler)
-    window.addEventListener('hashchange', handler)
+    window.addEventListener('popstate', () => this.callWithErrorHandling(handler))
+    window.addEventListener('hashchange', () => this.callWithErrorHandling(handler))
     // 劫持 history.pushState/replaceState 以监听 SPA 路由变化
     const rawPush = history.pushState
     history.pushState = function (...args) {
@@ -145,53 +162,58 @@ export default class LCEMonitor {
    * DOMContentLoaded 时间
    * 资源加载时间（如 CSS、JS、图片等的加载耗时）
    */
-
   private collectPerformanceData() {
-    window.addEventListener('load', () => {
+    const report = () => {
       setTimeout(() => {
-        const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming
-        const fcp = performance.getEntriesByName('first-contentful-paint')[0] as PerformanceEntry
-        const lcp = performance.getEntriesByName('largest-contentful-paint')[0] as PerformanceEntry
+        this.callWithErrorHandling(() => {
+          const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming
+          const fcp = performance.getEntriesByName('first-contentful-paint')[0] as PerformanceEntry
+          const lcp = performance.getEntriesByName('largest-contentful-paint')[0] as PerformanceEntry
+          // 计算 TTI（简单近似：DOMContentLoadedEventEnd）
+          const tti = nav ? nav.domContentLoadedEventEnd : null
 
-        // 计算 TTI（简单近似：DOMContentLoadedEventEnd）
-        const tti = nav ? nav.domContentLoadedEventEnd : null
+          // 资源加载时间统计
+          const resources = performance.getEntriesByType('resource') as PerformanceResourceTiming[]
+          const resourceStats = {
+            css: 0,
+            js: 0,
+            img: 0,
+            other: 0
+          }
+          let totalResourceTime = 0
+          resources.forEach((res) => {
+            const duration = res.duration
+            totalResourceTime += duration
+            if (res.initiatorType === 'css') resourceStats.css += duration
+            else if (res.initiatorType === 'script') resourceStats.js += duration
+            else if (res.initiatorType === 'img') resourceStats.img += duration
+            else resourceStats.other += duration
+          })
 
-        // 资源加载时间统计
-        const resources = performance.getEntriesByType('resource') as PerformanceResourceTiming[]
-        const resourceStats = {
-          css: 0,
-          js: 0,
-          img: 0,
-          other: 0
-        }
-        let totalResourceTime = 0
-        resources.forEach((res) => {
-          const duration = res.duration
-          totalResourceTime += duration
-          if (res.initiatorType === 'css') resourceStats.css += duration
-          else if (res.initiatorType === 'script') resourceStats.js += duration
-          else if (res.initiatorType === 'img') resourceStats.img += duration
-          else resourceStats.other += duration
-        })
-
-        const performanceData = {
-          pageLoadTime: nav ? nav.loadEventEnd - nav.loadEventStart : null,
-          fcp: fcp ? fcp.startTime : null,
-          lcp: lcp ? lcp.startTime : null,
-          ttfb: nav ? nav.responseStart - nav.requestStart : null,
-          tti,
-          domContentLoaded: nav ? nav.domContentLoadedEventEnd - nav.startTime : null,
-          totalResourceTime,
-          resourceStats
-        }
-        this.enqueue({
-          type: 'performance',
-          userId: '7879',
-          timestamp: formatTimestamp(),
-          data: performanceData
+          const performanceData = {
+            pageLoadTime: nav ? nav.loadEventEnd - nav.loadEventStart : null,
+            fcp: fcp ? fcp.startTime : null,
+            lcp: lcp ? lcp.startTime : null,
+            ttfb: nav ? nav.responseStart - nav.requestStart : null,
+            tti,
+            domContentLoaded: nav ? nav.domContentLoadedEventEnd - nav.startTime : null,
+            totalResourceTime,
+            resourceStats
+          }
+          this.enqueue({
+            type: 'performance',
+            userId: '7879',
+            timestamp: formatTimestamp(),
+            data: performanceData
+          })
         })
       }, 0)
-    })
+    }
+    if (document.readyState === 'complete') {
+      report()
+    } else {
+      window.addEventListener('load', report)
+    }
   }
 
   /**
@@ -201,55 +223,59 @@ export default class LCEMonitor {
     window.addEventListener(
       'error',
       (event: ErrorEvent) => {
-        // 静态资源加载错误
-        if (
-          event.target &&
-          (event.target instanceof HTMLImageElement ||
-            event.target instanceof HTMLScriptElement ||
-            event.target instanceof HTMLLinkElement)
-        ) {
-          const target = event.target as HTMLElement
+        this.callWithErrorHandling(() => {
+          // 静态资源加载错误
+          if (
+            event.target &&
+            (event.target instanceof HTMLImageElement ||
+              event.target instanceof HTMLScriptElement ||
+              event.target instanceof HTMLLinkElement)
+          ) {
+            const target = event.target as HTMLElement
+            this.enqueue({
+              type: 'error',
+              userId: '7879',
+              timestamp: formatTimestamp(),
+              data: {
+                message: 'Resource Load Error',
+                tagName: target.tagName,
+                src: (target as any).src || (target as any).href || '',
+                outerHTML: target.outerHTML
+              }
+            })
+            return
+          }
+          // JS 运行时错误
+          const { message, filename, lineno, colno, error } = event
           this.enqueue({
             type: 'error',
             userId: '7879',
             timestamp: formatTimestamp(),
             data: {
-              message: 'Resource Load Error',
-              tagName: target.tagName,
-              src: (target as any).src || (target as any).href || '',
-              outerHTML: target.outerHTML
+              message,
+              filename,
+              lineno,
+              colno,
+              stack: error?.stack || ''
             }
           })
-          return
-        }
-        // JS 运行时错误
-        const { message, filename, lineno, colno, error } = event
-        this.enqueue({
-          type: 'error',
-          userId: '7879',
-          timestamp: formatTimestamp(),
-          data: {
-            message,
-            filename,
-            lineno,
-            colno,
-            stack: error?.stack || ''
-          }
         })
       },
       true
     ) // 捕获捕获阶段的错误
 
     window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
-      const { reason } = event
-      this.enqueue({
-        type: 'unhandledrejection',
-        userId: '7879',
-        timestamp: formatTimestamp(),
-        data: {
-          reason: typeof reason === 'string' ? reason : reason?.message || '',
-          stack: reason?.stack || ''
-        }
+      this.callWithErrorHandling(() => {
+        const { reason } = event
+        this.enqueue({
+          type: 'unhandledrejection',
+          userId: '7879',
+          timestamp: formatTimestamp(),
+          data: {
+            reason: typeof reason === 'string' ? reason : reason?.message || '',
+            stack: reason?.stack || ''
+          }
+        })
       })
     })
   }
@@ -259,14 +285,14 @@ export default class LCEMonitor {
    * @param event 事件名
    * @param data  事件数据
    */
-  public track(event: string, data?: Record<string, any>) {
-    this.enqueue({
-      type: 'custom',
-      userId: '7879',
-      timestamp: formatTimestamp(),
-      data: { event, ...data }
-    })
-  }
+  // public track(event: string, data?: Record<string, any>) {
+  //   this.enqueue({
+  //     type: 'custom',
+  //     userId: '7879',
+  //     timestamp: formatTimestamp(),
+  //     data: { event, ...data }
+  //   })
+  // }
 
   /**
    * 入队并根据配置判断是否立即上报
@@ -292,19 +318,8 @@ export default class LCEMonitor {
     const events = this.queue.splice(0, this.queue.length)
     console.log('Flushing events:', events.length, events)
     try {
-      // // 使用 gif 上报方式
-      // for (const event of events) {
-      //   const img = new Image()
-      //   // 数据编码到 url 参数
-      //   const params = encodeURIComponent(JSON.stringify(event))
-      //   img.src = `${this.endpoint}?data=${params}&_t=${Date.now()}`
-      //   // console.log(img.src) // 调试输出;
-      // }
       // 推荐：批量上报
       const payload = { events }
-      // if (navigator.sendBeacon) {
-      //   navigator.sendBeacon(this.endpoint, JSON.stringify(payload))
-      // } else {
       console.log('Sending events via fetch:', payload)
       await fetch(this.endpoint, {
         method: 'POST',
@@ -355,5 +370,41 @@ export default class LCEMonitor {
     } catch {
       console.error('Failed to clear cache from localStorage. Local storage may be full or disabled.')
     }
+  }
+
+  // 用户自定义的错误处理函数
+  private handleError: (e: any) => void = (e) => {
+    // 默认处理：打印错误
+    console.error('[LCEMonitor Error]', e)
+  }
+
+  /**
+   * 用户注册自定义错误处理函数
+   */
+  public registerErrorHandler(fn: (e: any) => void) {
+    this.handleError = fn
+  }
+
+  /**
+   * 通用错误捕获执行器
+   */
+  private callWithErrorHandling(fn: (...args: any[]) => any, ...args: any[]) {
+    try {
+      return fn && fn(...args)
+    } catch (e) {
+      this.handleError(e)
+    }
+  }
+
+  // 例：对外暴露的API都用callWithErrorHandling包裹
+  public track(event: string, data?: Record<string, any>) {
+    this.callWithErrorHandling(() => {
+      this.enqueue({
+        type: 'custom',
+        userId: '7879',
+        timestamp: formatTimestamp(),
+        data: { event, ...data }
+      })
+    })
   }
 }
