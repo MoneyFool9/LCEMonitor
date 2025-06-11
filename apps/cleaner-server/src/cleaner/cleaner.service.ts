@@ -1,3 +1,4 @@
+import { generateTimeStamp } from '@lce-monitor/utils'
 import { Injectable, OnModuleInit } from '@nestjs/common'
 import Redis from 'ioredis'
 import * as mysql from 'mysql2/promise'
@@ -80,7 +81,7 @@ export class CleanerService implements OnModuleInit {
       // 将清洗后的事件添加到结果数组中
       // 使用当前时间戳作为默认值，如果事件没有提供时间戳
       cleaned.push({
-        timestamp: event.timestamp || new Date().toISOString(),
+        timestamp: event.timestamp || generateTimeStamp(),
         type: event.type,
         userId: event.userId,
         data: JSON.stringify(event.data || {})
