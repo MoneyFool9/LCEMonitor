@@ -11,7 +11,7 @@
     "node_modules"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc --build"
   },
   "dependencies": {
     "dayjs": "1.11.13"
