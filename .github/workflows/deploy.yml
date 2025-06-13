@@ -34,6 +34,7 @@ jobs:
         with:
           node-version: '18' # 设置Node.js版本
           cache: 'npm' # 启用npm缓存
+          cache-dependency-path: './apps/docs/package-lock.json' # 添加这行，指定lock文件路径
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
