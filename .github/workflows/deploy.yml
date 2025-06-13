@@ -33,7 +33,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18' # 设置Node.js版本
-          cache: false
+          cache: 'npm' # 启用npm缓存
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
