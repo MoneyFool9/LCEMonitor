@@ -33,7 +33,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18' # 设置Node.js版本
-          cache: 'npm' # 启用npm缓存以加快依赖安装速度
+          cache: false
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
