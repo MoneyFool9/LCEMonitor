@@ -5,15 +5,22 @@
   "description": "local utils package",
   "author": "LCE",
   "license": "MIT",
-  "main": "./dist/index.js",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.esm.js",
   "files": [
     "dist",
     "node_modules"
   ],
   "scripts": {
-    "build": "tsc --build"
+    "build": "tsc --build",
+    "build:esm": "rollup -c rollup.config.js"
   },
   "dependencies": {
     "dayjs": "1.11.13"
+  },
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^12.1.2",
+    "rollup": "^4.43.0",
+    "typescript": "^5.8.3"
   }
 }

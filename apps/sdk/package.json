@@ -13,7 +13,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@lce-monitor/utils": "workspace:^"
+    "@lce-monitor/utils": "workspace:*"
   },
   "devDependencies": {
     "@types/qs": "^6.9.18",

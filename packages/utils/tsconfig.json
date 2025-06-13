@@ -1,12 +1,14 @@
 {
   "extends": "/Users/apple/Desktop/2024-2025_processing/寒假/lce_monitor/tsconfig.option.json",
   "compilerOptions": {
-    "declarationMap": false,
-    "emitDeclarationOnly": false,
-    "rootDir": "./src",
-    "outDir": "./dist",
-    "module": "ESNext", // 关键：输出为 ESM
     "target": "ES2017",
-    "moduleResolution": "Node"
-  }
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": "./dist",
+    "rootDir": "./src"
+  },
+  "include": ["src/**/*"]
 }
