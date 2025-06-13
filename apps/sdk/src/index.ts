@@ -1,5 +1,5 @@
-import { formatTimestamp } from '@lce-monitor/utils'
-import { TrackEvent, SDKOptions } from './types'
+import { formatTimestamp, get_uuid } from '@lce-monitor/utils/src/index'
+import { SDKOptions, TrackEvent } from './types'
 
 /**
  * LCEMonitor 埋点 SDK 主类
@@ -11,6 +11,7 @@ export default class LCEMonitor {
   private stayStartTime = Date.now() // 页面进入时间
   private lastUrl = location.href // 上一次的 URL
   private options: SDKOptions // SDK 配置
+  private uuid: string = '' // 唯一标识符，用于标识用户或会话
 
   /**
    * 构造函数，支持字符串或对象参数
@@ -29,6 +30,8 @@ export default class LCEMonitor {
    * 初始化各类自动采集与监控
    */
   private init() {
+    this.uuid = get_uuid() // 生成唯一标识符
+    console.log('LCEMonitor initialized with UUID:', this.uuid)
     this.trackPV() // 采集 PV
     this.trackUV() // 采集 UV
     this.listenClick() // 采集点击事件
@@ -45,7 +48,7 @@ export default class LCEMonitor {
   private trackPV() {
     this.enqueue({
       type: 'pv',
-      userId: '7879',
+      userId: this.uuid,
       timestamp: formatTimestamp(),
       data: { url: location.href }
     })
@@ -62,7 +65,7 @@ export default class LCEMonitor {
       // 如果没有 UV 或者超过 24 小时
       localStorage.setItem(uvKey, now.toString())
       this.enqueue({
-        userId: '7879',
+        userId: this.uuid,
         type: 'uv',
         timestamp: formatTimestamp(),
         data: { url: location.href }
@@ -81,7 +84,7 @@ export default class LCEMonitor {
         if (eventName) {
           this.enqueue({
             type: 'click',
-            userId: '7879',
+            userId: this.uuid,
             timestamp: formatTimestamp(),
             data: { event: eventName, url: location.href }
           })
@@ -112,7 +115,7 @@ export default class LCEMonitor {
         const stayTime = Date.now() - this.stayStartTime
         this.enqueue({
           type: 'stay',
-          userId: '7879',
+          userId: this.uuid,
           timestamp: formatTimestamp(),
           data: { url: location.href, stayTime }
         })
@@ -129,7 +132,7 @@ export default class LCEMonitor {
       if (location.href !== this.lastUrl) {
         this.enqueue({
           type: 'route',
-          userId: '7879',
+          userId: this.uuid,
           timestamp: formatTimestamp(),
           data: { from: this.lastUrl, to: location.href }
         })
@@ -202,7 +205,7 @@ export default class LCEMonitor {
           }
           this.enqueue({
             type: 'performance',
-            userId: '7879',
+            userId: this.uuid,
             timestamp: formatTimestamp(),
             data: performanceData
           })
@@ -234,7 +237,7 @@ export default class LCEMonitor {
             const target = event.target as HTMLElement
             this.enqueue({
               type: 'error',
-              userId: '7879',
+              userId: this.uuid,
               timestamp: formatTimestamp(),
               data: {
                 message: 'Resource Load Error',
@@ -249,7 +252,7 @@ export default class LCEMonitor {
           const { message, filename, lineno, colno, error } = event
           this.enqueue({
             type: 'error',
-            userId: '7879',
+            userId: this.uuid,
             timestamp: formatTimestamp(),
             data: {
               message,
@@ -269,7 +272,7 @@ export default class LCEMonitor {
         const { reason } = event
         this.enqueue({
           type: 'unhandledrejection',
-          userId: '7879',
+          userId: this.uuid,
           timestamp: formatTimestamp(),
           data: {
             reason: typeof reason === 'string' ? reason : reason?.message || '',
@@ -401,7 +404,7 @@ export default class LCEMonitor {
     this.callWithErrorHandling(() => {
       this.enqueue({
         type: 'custom',
-        userId: '7879',
+        userId: this.uuid,
         timestamp: formatTimestamp(),
         data: { event, ...data }
       })

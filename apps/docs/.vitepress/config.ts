@@ -2,8 +2,9 @@ import { defineConfig } from 'vitepress'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: 'LceMonitor manual',
-  description: 'Quick Start Guide for the Tracking and Monitoring Platform',
+  lang: 'zh-CN',
+  title: 'LCE埋点监控平台',
+  description: '提供前端埋点、后端埋点、数据分析等功能。快点来体验吧！',
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
@@ -20,7 +21,27 @@ export default defineConfig({
         ]
       }
     ],
+    // 设置搜索框的样式
+    search: {
+      provider: 'local',
+      options: {
+        translations: {
+          button: {
+            buttonText: '搜索文档',
+            buttonAriaLabel: '搜索文档'
+          },
+          modal: {
+            noResultsText: '无法找到相关结果',
+            resetButtonTitle: '清除查询条件',
+            footer: {
+              selectText: '选择',
+              navigateText: '切换'
+            }
+          }
+        }
+      }
+    },
 
-    socialLinks: [{ icon: 'github', link: 'https://github.com/vuejs/vitepress' }]
+    socialLinks: [{ icon: 'github', link: 'https://github.com/MoneyFool9/LCEMonitor' }]
   }
 })
