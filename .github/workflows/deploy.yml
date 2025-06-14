@@ -42,6 +42,7 @@ jobs:
       - name: Install dependencies
         working-directory: ./apps/docs
         run: |
+          npm install vitepress --save-dev
           npm ci
 
       - name: Build with VitePress
