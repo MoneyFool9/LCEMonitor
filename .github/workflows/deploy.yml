@@ -42,11 +42,7 @@ jobs:
       - name: Install dependencies
         working-directory: ./apps/docs
         run: |
-          npm install
-          
-      - name: Validate VitePress Installation
-        working-directory: ./apps/docs
-        run: npx vitepress --version
+          npm ci
 
       - name: Build with VitePress
         working-directory: ./apps/docs
