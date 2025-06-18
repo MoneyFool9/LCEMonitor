@@ -1,10 +1,12 @@
 {
   "name": "@lce-monitor/jssdk",
-  "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "monorepo example app",
   "author": "LCE",
   "main": "./dist/index.js",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "debug": "ts-node ./src/index.ts",
     "clean": "rm -rf ./dist",
