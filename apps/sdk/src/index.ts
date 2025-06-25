@@ -30,6 +30,7 @@ export default class LCEMonitor {
    * 初始化各类自动采集与监控
    */
   private init() {
+    this.loadCache() // 1. 在初始化最开始，加载上一次未发送成功的事件
     this.uuid = get_uuid() // 生成唯一标识符
     console.log('LCEMonitor initialized with UUID:', this.uuid)
     this.trackPV() // 采集 PV
@@ -39,7 +40,12 @@ export default class LCEMonitor {
     this.trackStayTime() // 采集页面停留时长
     this.collectPerformanceData() // 采集性能数据
     this.setupErrorHandling() // 采集错误与未捕获异常
-    window.addEventListener('beforeunload', () => this.flush()) // 离开页面时强制上报
+    // window.addEventListener('beforeunload', () => this.flush()) // 离开页面时强制上报
+    window.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        this.flush(true)
+      }
+    })
   }
 
   /**
@@ -91,36 +97,29 @@ export default class LCEMonitor {
         }
       })
     })
-
-    // document.addEventListener('click', (e) => {
-    //   const target = e.target as HTMLElement
-    //   const eventName = target.getAttribute('data-lce-event')
-    //   if (eventName) {
-    //     this.enqueue({
-    //       type: 'click',
-    //       userId: '7879',
-    //       timestamp: formatTimestamp(),
-    //       data: { event: eventName, url: location.href }
-    //     })
-    //   }
-    // })
   }
 
   /**
    * 采集页面停留时长（离开页面时触发）
    */
   private trackStayTime() {
-    window.addEventListener('beforeunload', () => {
-      this.callWithErrorHandling(() => {
-        const stayTime = Date.now() - this.stayStartTime
-        this.enqueue({
-          type: 'stay',
-          userId: this.uuid,
-          timestamp: formatTimestamp(),
-          data: { url: location.href, stayTime }
+    // 使用 visibilitychange 代替 beforeunload 来计算停留时间，更灵活
+    window.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        this.callWithErrorHandling(() => {
+          const stayTime = Date.now() - this.stayStartTime
+          this.enqueue({
+            type: 'stay',
+            userId: this.uuid,
+            timestamp: formatTimestamp(),
+            data: { url: this.lastUrl, stayTime }
+          })
+          // 注意：这里的 flush 会在上面的总 flush 之前执行
         })
-        this.flush()
-      })
+      } else if (document.visibilityState === 'visible') {
+        // 当页面从隐藏状态恢复时，重置停留时间的起点
+        this.stayStartTime = Date.now()
+      }
     })
   }
 
@@ -288,6 +287,17 @@ export default class LCEMonitor {
    * @param event 事件名
    * @param data  事件数据
    */
+  // 例：对外暴露的API都用callWithErrorHandling包裹
+  public track(event: string, data?: Record<string, any>) {
+    this.callWithErrorHandling(() => {
+      this.enqueue({
+        type: 'custom',
+        userId: this.uuid,
+        timestamp: formatTimestamp(),
+        data: { event, ...data }
+      })
+    })
+  }
   // public track(event: string, data?: Record<string, any>) {
   //   this.enqueue({
   //     type: 'custom',
@@ -312,31 +322,93 @@ export default class LCEMonitor {
     }
   }
 
-  /**
-   * 上报数据，失败时缓存并自动重试
-   */
-  private async flush() {
+  // private async sendWithFetch(body: string, isUnloading: boolean) {
+  //   this.isSending = true
+  //   try {
+  //     console.log('Sending events via fetch:', JSON.parse(body))
+  //     await fetch(this.endpoint, {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body
+  //       // keepalive: isUnloading
+  //     })
+  //     this.clearCache()
+  //   } catch (err) {
+  //     console.error('Failed to send events:', err)
+  //     // 这里不需要重新入队，因为队列已经在 flush 开始时被清空
+  //     // 只需要保存缓存即可
+  //     this.saveCache()
+  //     if (!isUnloading) {
+  //       setTimeout(() => this.flush(), this.options.retryInterval)
+  //     }
+  //   } finally {
+  //     this.isSending = false
+  //   }
+  // }
+
+  // /**
+  //  * 上报数据，失败时缓存并自动重试
+  //  */
+  // private async flush(isUnloading = false) {
+  //   if (this.isSending || this.queue.length === 0) return
+
+  //   const events = this.queue.splice(0, this.queue.length)
+  //   const payload = { events }
+  //   const body = JSON.stringify(payload)
+  //   console.log('Flushing events:', events.length, events)
+
+  //   // 在页面卸载时，优先使用 sendBeacon，因为它更可靠且非阻塞
+  //   if (isUnloading && navigator.sendBeacon) {
+  //     // 创建 Blob 对象明确指定 Content-Type
+  //     const blob = new Blob([body], { type: 'application/json' })
+  //     const success = navigator.sendBeacon(this.endpoint, blob)
+  //     if (success) {
+  //       this.clearCache()
+  //     } else {
+  //       // 如果 sendBeacon 失败，回退到普通 fetch
+  //       this.queue.unshift(...events)
+  //       await this.sendWithFetch(body, isUnloading)
+  //     }
+  //     return
+  //   }
+
+  //   await this.sendWithFetch(body, isUnloading)
+  // }
+
+  private async flush(isUnloading = false) {
     if (this.isSending || this.queue.length === 0) return
-    this.isSending = true
+
+    // 1. 复制并清空当前队列
     const events = this.queue.splice(0, this.queue.length)
+    const payload = { events }
+    const body = JSON.stringify(payload)
     console.log('Flushing events:', events.length, events)
+
+    this.isSending = true
     try {
-      // 推荐：批量上报
-      const payload = { events }
-      console.log('Sending events via fetch:', payload)
+      // 2. 使用 fetch + keepalive 发送数据
       await fetch(this.endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body,
+        // keepalive: true 保证页面卸载后请求仍会继续发送
+        keepalive: true
       })
+
+      // 3. 请求成功，清除本地缓存
       this.clearCache()
     } catch (err) {
-      // 上报失败，重新入队并缓存，稍后重试
-      console.error('Failed to send events:', err)
+      // 4. 请求失败，将事件重新放回队列头部并缓存，等待下次重试
+      console.error('Failed to send events, re-queuing for next session:', err)
       this.queue.unshift(...events)
       this.saveCache()
-      setTimeout(() => this.flush(), this.options.retryInterval)
+
+      // 只有在非卸载时才进行延时重试
+      if (!isUnloading) {
+        setTimeout(() => this.flush(), this.options.retryInterval)
+      }
     } finally {
+      // 5. 无论成功或失败，都重置发送状态
       this.isSending = false
     }
   }
@@ -345,34 +417,36 @@ export default class LCEMonitor {
    * 将队列缓存到本地
    */
   private saveCache() {
-    try {
+    this.callWithErrorHandling(() => {
       localStorage.setItem('lce_monitor_cache', JSON.stringify(this.queue))
-    } catch {
-      console.error('Failed to save cache to localStorage. Local storage may be full or disabled.')
-    }
+    })
   }
 
   /**
    * 从本地加载缓存队列
    */
-  // private loadCache() {
-  //   try {
-  //     const cache = localStorage.getItem('lce_monitor_cache')
-  //     if (cache) {
-  //       this.queue = JSON.parse(cache)
-  //     }
-  //   } catch {}
-  // }
+  private loadCache() {
+    // 使用 callWithErrorHandling 包装，确保任何解析或读取错误都能被自定义处理器捕获
+    this.callWithErrorHandling(() => {
+      const cache = localStorage.getItem('lce_monitor_cache')
+      if (cache) {
+        this.queue = JSON.parse(cache)
+        if (this.queue.length > 0) {
+          console.log(`Loaded ${this.queue.length} events from cache.`)
+          this.flush()
+        }
+      }
+    })
+  }
 
   /**
    * 清除本地缓存
    */
   private clearCache() {
-    try {
+    // 使用 callWithErrorHandling 包装，确保任何存储错误都能被自定义处理器捕获
+    this.callWithErrorHandling(() => {
       localStorage.removeItem('lce_monitor_cache')
-    } catch {
-      console.error('Failed to clear cache from localStorage. Local storage may be full or disabled.')
-    }
+    })
   }
 
   // 用户自定义的错误处理函数
@@ -397,17 +471,5 @@ export default class LCEMonitor {
     } catch (e) {
       this.handleError(e)
     }
-  }
-
-  // 例：对外暴露的API都用callWithErrorHandling包裹
-  public track(event: string, data?: Record<string, any>) {
-    this.callWithErrorHandling(() => {
-      this.enqueue({
-        type: 'custom',
-        userId: this.uuid,
-        timestamp: formatTimestamp(),
-        data: { event, ...data }
-      })
-    })
   }
 }
