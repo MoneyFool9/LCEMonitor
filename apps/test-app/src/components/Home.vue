@@ -20,6 +20,7 @@
       <button @click="rejectPromise" style="margin-left: 10px">触发 Promise 错误</button>
       <button @click="togglePanel" style="margin-left: 10px">{{ showPanel ? '隐藏' : '显示' }}面板</button>
     </section>
+    <button @click="triggerSDKError" style="margin: 10px 0">触发 SDK 内部错误（（测试自定义错误处理））</button>
 
     <section v-if="showPanel" style="margin: 20px 0; border: 1px solid #eee; padding: 16px">
       <h3>水果列表（点击可埋点）</h3>
@@ -48,7 +49,7 @@ import { ref, onMounted } from 'vue'
 import { sdk } from '../sdkInstance'
 sdk.registerErrorHandler((e) => {
   // 这里可以自定义处理逻辑，比如上报、弹窗、忽略等
-  console.error('自定义错误处理:', e)
+  console.error('自定义错误处理（SDK内部操作发生了错误）:', e)
 })
 
 const inputValue = ref('')
@@ -63,6 +64,16 @@ function loadFailScript() {
 }
 function throwError() {
   throw new Error('测试未捕获异常')
+}
+
+function triggerSDKError() {
+  console.log('准备触发 SDK 内部错误')
+  // 创建一个循环引用的对象
+  const circularObject: any = {}
+  circularObject.a = { b: circularObject }
+
+  // 使用这个对象调用 track，这将导致 SDK 内部的 JSON.stringify 失败
+  sdk.track('sdk_internal_error_test', { data: circularObject })
 }
 
 function rejectPromise() {
